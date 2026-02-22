@@ -138,7 +138,18 @@ print(f'  PyTorch:      {torch.__version__}')
 print(f'  CUDA:         {torch.cuda.is_available()} ({torch.cuda.get_device_name(0) if torch.cuda.is_available() else \"N/A\"})')
 "
 python -c "from omni.lucitra.validate.client import LucitraClient; print('  Plugin:       OK')"
-python -c "from pxr import Usd; print('  USD (pxr):    OK')"
+
+# NOTE: With pip-installed Isaac Sim, pxr can only be imported AFTER SimulationApp
+# is initialized. We verify it through SimulationApp instead of a bare pxr import.
+python -c "
+import os
+os.environ['OMNI_KIT_ACCEPT_EULA'] = 'YES'
+from isaacsim import SimulationApp
+app = SimulationApp({'headless': True, 'width': 64, 'height': 64})
+from pxr import Usd
+print('  USD (pxr):    OK (via SimulationApp)')
+app.close()
+"
 
 # Verify no usd-core conflict
 if pip show usd-core &> /dev/null; then
