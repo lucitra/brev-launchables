@@ -139,15 +139,10 @@ print(f'  CUDA:         {torch.cuda.is_available()} ({torch.cuda.get_device_name
 "
 python -c "from omni.lucitra.validate.client import LucitraClient; print('  Plugin:       OK')"
 
-# With pip-installed Isaac Sim, pxr is only available after SimulationApp init.
-python -c "
-import os; os.environ['OMNI_KIT_ACCEPT_EULA'] = 'YES'
-from isaacsim import SimulationApp
-app = SimulationApp({'headless': True, 'width': 64, 'height': 64})
-from pxr import Usd
-print('  USD (pxr):    OK (via SimulationApp)')
-app.close()
-"
+# Lightweight check: verify isaacsim package is importable.
+# Full SimulationApp + pxr verification is deferred to the --gpu smoke test
+# (SimulationApp init takes ~4 min on first run as it downloads extensions).
+python -c "import isaacsim; print('  Isaac Sim:    OK')"
 
 # Verify no usd-core conflict
 if pip show usd-core &> /dev/null; then
