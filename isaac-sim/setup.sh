@@ -31,6 +31,7 @@ echo ""
 
 if [ "${CLEAN}" = "--clean" ]; then
     echo "[!] Clean mode: removing existing venv and plugin..."
+    cd "$HOME"  # avoid "No such file or directory" if cwd is being deleted
     rm -rf "${VENV_DIR}" "${PLUGIN_DIR}"
     echo "    Done."
     echo ""
