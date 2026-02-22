@@ -28,8 +28,12 @@ echo ""
 echo "[1/7] Installing system dependencies..."
 sudo apt-get update -qq
 
-# Core dependencies
-sudo apt-get install -y -qq python3.10 python3.10-venv python3.10-dev git > /dev/null 2>&1
+# Core dependencies + OpenGL/X11 libs required by Isaac Sim headless rendering
+sudo apt-get install -y -qq \
+    python3.10 python3.10-venv python3.10-dev git \
+    libxt6 libglu1-mesa libxi6 libxrandr2 libxinerama1 libxcursor1 \
+    libx11-6 libgl1-mesa-glx libegl1 vulkan-tools libvulkan1 \
+    > /dev/null 2>&1
 
 # GitHub CLI (needed for private repo access)
 if ! command -v gh &> /dev/null; then
