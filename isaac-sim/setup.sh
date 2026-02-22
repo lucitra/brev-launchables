@@ -88,6 +88,8 @@ else
     echo ""
     echo "       Authenticated."
 fi
+# Configure git to use gh token for HTTPS operations (no username/password prompts)
+gh auth setup-git
 
 # ── 4. Python venv ──
 
