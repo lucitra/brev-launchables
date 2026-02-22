@@ -101,7 +101,10 @@ else
 fi
 cd "${PLUGIN_DIR}/plugins/isaac-sim"
 pip install -e ".[dev]" -q
-pip install usd-core -q
+# NOTE: Do NOT install usd-core here — Isaac Sim ships its own pxr bindings.
+# Installing usd-core alongside Isaac Sim causes C++ binding conflicts
+# (SdfPath vector converter error) and segfaults. The standalone usd-core
+# package is only for local CPU-only testing without Isaac Sim.
 echo "       Done."
 
 # ── 7. Verify ──
