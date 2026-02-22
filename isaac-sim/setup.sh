@@ -4,6 +4,9 @@
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/lucitra/brev-launchables/main/isaac-sim/setup.sh | bash
 #
+# Clean reinstall (nukes existing venv):
+#   curl -fsSL https://raw.githubusercontent.com/lucitra/brev-launchables/main/isaac-sim/setup.sh | bash -s -- --clean
+#
 # Tested on: Deep Learning Base OSS Nvidia Driver GPU AMI (Ubuntu 22.04)
 # GPU: NVIDIA L40S (requires any RTX GPU with >=8GB VRAM)
 
@@ -14,6 +17,7 @@ PLUGIN_BRANCH="${PLUGIN_BRANCH:-dev}"
 PLUGIN_REPO="${PLUGIN_REPO:-lucitra/lucitra-validate}"
 VENV_DIR="${VENV_DIR:-$HOME/isaacsim-env}"
 PLUGIN_DIR="${PLUGIN_DIR:-$HOME/lucitra-validate}"
+CLEAN="${1:-}"
 
 echo "============================================="
 echo "Lucitra Validate — Isaac Sim Brev Setup"
@@ -23,19 +27,29 @@ echo "Plugin branch:     ${PLUGIN_BRANCH}"
 echo "Venv:              ${VENV_DIR}"
 echo ""
 
-# ── 1. System dependencies + GitHub CLI ──
+# ── Clean mode ──
+
+if [ "${CLEAN}" = "--clean" ]; then
+    echo "[!] Clean mode: removing existing venv and plugin..."
+    rm -rf "${VENV_DIR}" "${PLUGIN_DIR}"
+    echo "    Done."
+    echo ""
+fi
+
+# ── 1. System dependencies ──
 
 echo "[1/7] Installing system dependencies..."
 sudo apt-get update -qq
 
-# Core dependencies + OpenGL/X11 libs required by Isaac Sim headless rendering
+# Python, git, GitHub CLI, and OpenGL/X11/Vulkan libs for headless rendering.
+# Isaac Sim's neuray/iray renderer needs these even without a display.
 sudo apt-get install -y -qq \
     python3.10 python3.10-venv python3.10-dev git \
     libxt6 libglu1-mesa libxi6 libxrandr2 libxinerama1 libxcursor1 \
-    libx11-6 libgl1-mesa-glx libegl1 vulkan-tools libvulkan1 \
+    libx11-6 libgl1-mesa-glx libegl1 libvulkan1 \
     > /dev/null 2>&1
 
-# GitHub CLI (needed for private repo access)
+# GitHub CLI
 if ! command -v gh &> /dev/null; then
     echo "       Installing GitHub CLI..."
     curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
@@ -89,6 +103,14 @@ echo "       Python: $(python --version)"
 
 echo "[5/7] Installing Isaac Sim ${ISAAC_SIM_VERSION} (this may take several minutes)..."
 pip install "isaacsim[all]==${ISAAC_SIM_VERSION}" --extra-index-url https://pypi.nvidia.com -q
+
+# IMPORTANT: Remove usd-core if present — it conflicts with Isaac Sim's
+# built-in pxr bindings (causes SdfPath C++ converter errors + segfaults).
+if pip show usd-core &> /dev/null; then
+    echo "       Removing conflicting usd-core package..."
+    pip uninstall usd-core -y -q
+fi
+
 export OMNI_KIT_ACCEPT_EULA=YES
 echo "       Done."
 
@@ -105,10 +127,6 @@ else
 fi
 cd "${PLUGIN_DIR}/plugins/isaac-sim"
 pip install -e ".[dev]" -q
-# NOTE: Do NOT install usd-core here — Isaac Sim ships its own pxr bindings.
-# Installing usd-core alongside Isaac Sim causes C++ binding conflicts
-# (SdfPath vector converter error) and segfaults. The standalone usd-core
-# package is only for local CPU-only testing without Isaac Sim.
 echo "       Done."
 
 # ── 7. Verify ──
@@ -121,17 +139,23 @@ print(f'  CUDA:         {torch.cuda.is_available()} ({torch.cuda.get_device_name
 "
 python -c "from omni.lucitra.validate.client import LucitraClient; print('  Plugin:       OK')"
 python -c "from pxr import Usd; print('  USD (pxr):    OK')"
+
+# Verify no usd-core conflict
+if pip show usd-core &> /dev/null; then
+    echo "  WARNING:      usd-core is installed — this will cause conflicts!"
+else
+    echo "  usd-core:     Not installed (correct — Isaac Sim provides pxr)"
+fi
+
 echo ""
 echo "============================================="
 echo "Setup complete!"
 echo ""
-echo "Activate the environment:"
-echo "  source ${VENV_DIR}/bin/activate"
-echo "  export OMNI_KIT_ACCEPT_EULA=YES"
-echo ""
 echo "Run tests:"
-echo "  cd ${PLUGIN_DIR}/plugins/isaac-sim"
-echo "  python -m pytest tests/ -v                    # Unit + USD smoke (28 tests)"
-echo "  python scripts/test-runtime.py                # Isaac Sim GPU runtime test"
-echo "  python -m pytest tests/test_e2e.py -v -m e2e  # E2E against live API"
+echo "  curl -fsSL https://raw.githubusercontent.com/lucitra/brev-launchables/main/isaac-sim/run-tests.sh | bash"
+echo ""
+echo "Or run a specific suite:"
+echo "  curl ... | bash -s -- --gpu    # GPU runtime smoke test"
+echo "  curl ... | bash -s -- --unit   # Unit + USD smoke tests"
+echo "  curl ... | bash -s -- --e2e    # E2E against live API"
 echo "============================================="
