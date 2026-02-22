@@ -37,7 +37,8 @@ run_unit() {
 
 run_gpu() {
     echo "── GPU Runtime Smoke Test ──"
-    python scripts/test-runtime.py
+    # isaacsim launcher sets up Kit runtime paths required by SimulationApp/pxr
+    isaacsim python scripts/test-runtime.py
     echo ""
 }
 

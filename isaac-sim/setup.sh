@@ -139,15 +139,13 @@ print(f'  CUDA:         {torch.cuda.is_available()} ({torch.cuda.get_device_name
 "
 python -c "from omni.lucitra.validate.client import LucitraClient; print('  Plugin:       OK')"
 
-# NOTE: With pip-installed Isaac Sim, pxr can only be imported AFTER SimulationApp
-# is initialized. We verify it through SimulationApp instead of a bare pxr import.
-python -c "
-import os
-os.environ['OMNI_KIT_ACCEPT_EULA'] = 'YES'
+# NOTE: With pip-installed Isaac Sim, the `isaacsim` CLI launcher must be used
+# to set up Kit runtime paths. Bare `python` can't find the omniverse-kit package.
+isaacsim python -c "
 from isaacsim import SimulationApp
 app = SimulationApp({'headless': True, 'width': 64, 'height': 64})
 from pxr import Usd
-print('  USD (pxr):    OK (via SimulationApp)')
+print('  USD (pxr):    OK (via isaacsim launcher)')
 app.close()
 "
 
